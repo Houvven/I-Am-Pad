@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="module_desc">在手机上实现平板登录</string>
+    <string name="clear_cache_tips">QQ、微信需要清除特定缓存才可以正常使用。你需要激活模块后重启相应应用后点击刷新按钮或清除相应应用数据。</string>
+</resources>

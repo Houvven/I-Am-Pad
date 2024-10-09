@@ -1,0 +1,4 @@
+/build
+/.gradle
+/src/assets/xposed_init
+/src/resources/META-INF/yukihookapi_init
