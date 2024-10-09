@@ -11,7 +11,6 @@ import com.highcapable.yukihookapi.hook.type.android.BuildClass
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 import java.io.File
-import kotlin.system.exitProcess
 
 @InjectYukiHookWithXposed
 object HookEntrance : IYukiHookXposedInit {
