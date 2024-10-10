@@ -1,5 +1,6 @@
 package com.houvven.impad
 
+import android.content.Context
 import android.os.Process
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
@@ -7,6 +8,7 @@ import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
 import com.highcapable.yukihookapi.hook.type.android.BuildClass
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
@@ -52,10 +54,15 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processWeWork() = loadApp(WEWORK_PACKAGE_NAME) {
-        "com.tencent.wework.foundation.logic.Application".toClass().method {
-            name("isAndroidPad")
+        val targetClassName = "com.tencent.wework.foundation.impl.WeworkServiceImpl"
+        val targetMethodName = "isAndroidPad"
+        ApplicationClass.method {
+            name("attach")
         }.hook().after {
-            result = true
+            val context = args[0] as Context
+            val classLoader = context.classLoader
+            val clazz = targetClassName.toClass(classLoader)
+            clazz.method { name(targetMethodName) }.hook().replaceToTrue()
         }
     }
 
