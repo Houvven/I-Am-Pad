@@ -10,6 +10,6 @@ const val WEWORK_PACKAGE_NAME = "com.tencent.wework"
 
 const val ClearCacheKey = "clear_cache"
 
-const val ClearCacheSucceedKey = "clear_cache_succeed"
+const val ClearCacheReceivedReply = "clear_cache_received_reply"
 
 val SystemPropertiesClass = "android.os.SystemProperties".toClass()

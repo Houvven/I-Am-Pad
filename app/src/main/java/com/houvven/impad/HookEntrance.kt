@@ -19,6 +19,9 @@ object HookEntrance : IYukiHookXposedInit {
 
     override fun onInit() = YukiHookAPI.configs {
         isDebug = BuildConfig.DEBUG
+        debugLog {
+            tag = BuildConfig.APPLICATION_ID
+        }
     }
 
     override fun onHook() = YukiHookAPI.encase {
@@ -28,7 +31,7 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processQQ() = loadApp(QQ_PACKAGE_NAME) {
-        simulateTabletModel()
+        simulateTabletModel("Xiaomi", "23046RP50C")
         simulateTabletProperties()
 
         withProcess(mainProcessName) {
@@ -42,7 +45,7 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processWeChat() = loadApp(WECHAT_PACKAGE_NAME) {
-        simulateTabletModel()
+        simulateTabletModel("samsung", "SM-F9560")
 
         withProcess(mainProcessName) {
             dataChannel.wait(ClearCacheKey) {
@@ -66,11 +69,11 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun simulateTabletModel() {
+    private fun simulateTabletModel(brand: String, model: String, manufacturer: String = brand) {
         BuildClass.run {
-            field { name("MANUFACTURER") }.get(null).set("Xiaomi")
-            field { name("BRAND") }.get(null).set("Xiaomi")
-            field { name("MODEL") }.get(null).set("23046RP50C")
+            field { name("MANUFACTURER") }.get(null).set(manufacturer)
+            field { name("BRAND") }.get(null).set(brand)
+            field { name("MODEL") }.get(null).set(model)
         }
     }
 
