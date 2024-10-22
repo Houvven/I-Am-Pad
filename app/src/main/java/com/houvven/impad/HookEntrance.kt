@@ -25,12 +25,16 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     override fun onHook() = YukiHookAPI.encase {
-        processQQ()
-        processWeChat()
-        processWeWork()
+        loadApp {
+            when {
+                packageName.contains(QQ_PACKAGE_NAME) -> processQQ()
+                packageName.contains(WECHAT_PACKAGE_NAME) -> processWeChat()
+                packageName.contains(WEWORK_PACKAGE_NAME) -> processWeWork()
+            }
+        }
     }
 
-    private fun PackageParam.processQQ() = loadApp(QQ_PACKAGE_NAME) {
+    private fun PackageParam.processQQ() {
         simulateTabletModel("Xiaomi", "23046RP50C")
         simulateTabletProperties()
 
@@ -44,7 +48,7 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun PackageParam.processWeChat() = loadApp(WECHAT_PACKAGE_NAME) {
+    private fun PackageParam.processWeChat() {
         simulateTabletModel("samsung", "SM-F9560")
 
         withProcess(mainProcessName) {
@@ -56,7 +60,7 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun PackageParam.processWeWork() = loadApp(WEWORK_PACKAGE_NAME) {
+    private fun PackageParam.processWeWork() {
         val targetClassName = "com.tencent.wework.foundation.impl.WeworkServiceImpl"
         val targetMethodName = "isAndroidPad"
         ApplicationClass.method {
