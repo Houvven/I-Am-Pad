@@ -4,5 +4,6 @@
         <item>com.tencent.mm</item>
         <item>com.tencent.mobileqq</item>
         <item>com.tencent.wework</item>
+        <item>com.alibaba.android.rimet</item>
     </string-array>
 </resources>
