@@ -84,10 +84,9 @@ object HookEntrance : IYukiHookXposedInit {
             "com.android.alibaba.ip.runtime.IpChange".toClass()
         searchClass(name = "ding_talk_foldable") {
             from("com.alibaba.android.dingtalkbase.foldable")
-            field { type = BooleanClass; modifiers { isStatic } }.count(2)
-            field { type = IntType; modifiers { isStatic } }.count(1)
+            field { type = BooleanClass; modifiers { isStatic } }.count { it >= 2}
             field { type = ipChangeClass; modifiers { isStatic } }.count(1)
-            method { returnType = BooleanType }.count { it > 5 }
+            method { returnType = BooleanType }.count { it >= 6 }
         }.wait { target ->
             if (target == null) {
                 return@wait YLog.error("not found ding talk target class.")
