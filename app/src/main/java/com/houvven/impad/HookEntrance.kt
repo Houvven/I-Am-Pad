@@ -4,12 +4,17 @@ import android.content.Context
 import android.os.Process
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
+import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.highcapable.yukihookapi.hook.param.PackageParam
+import com.highcapable.yukihookapi.hook.type.android.ActivityClass
 import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
 import com.highcapable.yukihookapi.hook.type.android.BuildClass
+import com.highcapable.yukihookapi.hook.type.java.BooleanClass
+import com.highcapable.yukihookapi.hook.type.java.BooleanType
+import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 import java.io.File
@@ -30,6 +35,7 @@ object HookEntrance : IYukiHookXposedInit {
                 packageName.contains(QQ_PACKAGE_NAME) -> processQQ()
                 packageName.contains(WECHAT_PACKAGE_NAME) -> processWeChat()
                 packageName.contains(WEWORK_PACKAGE_NAME) -> processWeWork()
+                packageName.contains(DING_TALK_PACKAGE_NAME) -> processDingTalk()
             }
         }
     }
@@ -70,6 +76,24 @@ object HookEntrance : IYukiHookXposedInit {
             val classLoader = context.classLoader
             val clazz = targetClassName.toClass(classLoader)
             clazz.method { name(targetMethodName) }.hook().replaceToTrue()
+        }
+    }
+
+    private fun PackageParam.processDingTalk() {
+        val ipChangeClass =
+            "com.android.alibaba.ip.runtime.IpChange".toClass()
+        searchClass(name = "ding_talk_foldable") {
+            from("com.alibaba.android.dingtalkbase.foldable")
+            field { type = BooleanClass; modifiers { isStatic } }.count(2)
+            field { type = IntType; modifiers { isStatic } }.count(1)
+            field { type = ipChangeClass; modifiers { isStatic } }.count(1)
+            method { returnType = BooleanType }.count { it > 5 }
+        }.wait { target ->
+            if (target == null) {
+                return@wait YLog.error("not found ding talk target class.")
+            }
+            YLog.debug("Ding talk target class ${target.name}")
+            target.method { param(ActivityClass); returnType(BooleanType) }.hook().replaceToTrue()
         }
     }
 
