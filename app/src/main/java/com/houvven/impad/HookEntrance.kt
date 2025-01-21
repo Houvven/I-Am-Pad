@@ -40,15 +40,21 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processQQ() {
-        simulateTabletModel("Xiaomi", "23046RP50C")
+        val targetModel = "23046RP50C"
+        simulateTabletModel("Xiaomi", targetModel)
         simulateTabletProperties()
 
-        withProcess(mainProcessName) {
-            dataChannel.wait(ClearCacheKey) {
-                YLog.info("Clear QQ cache")
-                File("${appInfo.dataDir}/files/mmkv/Pandora").deleteRecursively()
-                File("${appInfo.dataDir}/files/mmkv/Pandora.crc").deleteRecursively()
-                Process.killProcess(Process.myPid())
+        onAppLifecycle {
+            onCreate {
+                val preferences = getSharedPreferences("BUGLY_COMMON_VALUES", Context.MODE_PRIVATE)
+                val storedModel = preferences.getString("model", targetModel)
+                YLog.info("QQ got default device model: $storedModel")
+                if (storedModel != targetModel) {
+                    YLog.info("clear qq cache.")
+                    File("${appInfo.dataDir}/files/mmkv/Pandora").deleteRecursively()
+                    File("${appInfo.dataDir}/files/mmkv/Pandora.crc").deleteRecursively()
+                    Process.killProcess(Process.myPid())
+                }
             }
         }
     }
