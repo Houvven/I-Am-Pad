@@ -12,6 +12,4 @@ const val DING_TALK_PACKAGE_NAME = "com.alibaba.android.rimet"
 
 const val ClearCacheKey = "clear_cache"
 
-const val ClearCacheReceivedReply = "clear_cache_received_reply"
-
 val SystemPropertiesClass = "android.os.SystemProperties".toClass()

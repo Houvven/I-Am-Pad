@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Process
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -41,27 +40,48 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processQQ() {
-        simulateTabletModel("Xiaomi", "23046RP50C")
+        val targetModel = "23046RP50C"
+        simulateTabletModel("Xiaomi", targetModel)
         simulateTabletProperties()
 
-        withProcess(mainProcessName) {
-            dataChannel.wait(ClearCacheKey) {
-                YLog.info("Clear QQ cache")
-                File("${appInfo.dataDir}/files/mmkv/Pandora").deleteRecursively()
-                File("${appInfo.dataDir}/files/mmkv/Pandora.crc").deleteRecursively()
-                Process.killProcess(Process.myPid())
+        onAppLifecycle {
+            onCreate {
+                val preferences = getSharedPreferences("BUGLY_COMMON_VALUES", Context.MODE_PRIVATE)
+                val storedModel = preferences.getString("model", targetModel)
+                YLog.info("QQ got default device model: $storedModel")
+                if (storedModel != targetModel) {
+                    YLog.info("clear qq cache.")
+                    File("${appInfo.dataDir}/files/mmkv/Pandora").deleteRecursively()
+                    File("${appInfo.dataDir}/files/mmkv/Pandora.crc").deleteRecursively()
+                    Process.killProcess(Process.myPid())
+                }
             }
         }
     }
 
     private fun PackageParam.processWeChat() {
         simulateTabletModel("samsung", "SM-F9560")
-
-        withProcess(mainProcessName) {
-            dataChannel.wait(ClearCacheKey) {
-                YLog.info("Clear WeChat cache")
-                File(appInfo.dataDir, ".auth_cache").deleteRecursively()
-                Process.killProcess(Process.myPid())
+        onAppLifecycle {
+            onCreate {
+                try {
+                    SystemPropertiesClass.method {
+                        name("get")
+                        param(StringClass, StringClass)
+                        returnType(StringClass)
+                    }.get(null).invoke<String>("ro.product.model", "unknown")?.let { model ->
+                        YLog.info("WeChat got default device model: $model")
+                        val authCacheDir = File(appInfo.dataDir, ".auth_cache")
+                        authCacheDir.listFiles()?.forEach { dir ->
+                            if (dir.listFiles()?.any { it.readText().contains(model) } == true) {
+                                YLog.info("WeChat found original device model in auth cache: $model")
+                                authCacheDir.deleteRecursively()
+                                Process.killProcess(Process.myPid())
+                            }
+                        }
+                    }
+                } catch (e: Throwable) {
+                    YLog.error("WeChat error: $e")
+                }
             }
         }
     }
