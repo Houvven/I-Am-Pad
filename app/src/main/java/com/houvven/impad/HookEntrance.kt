@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Process
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.classOf
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -56,12 +55,27 @@ object HookEntrance : IYukiHookXposedInit {
 
     private fun PackageParam.processWeChat() {
         simulateTabletModel("samsung", "SM-F9560")
-
-        withProcess(mainProcessName) {
-            dataChannel.wait(ClearCacheKey) {
-                YLog.info("Clear WeChat cache")
-                File(appInfo.dataDir, ".auth_cache").deleteRecursively()
-                Process.killProcess(Process.myPid())
+        onAppLifecycle {
+            onCreate {
+                try {
+                    SystemPropertiesClass.method {
+                        name("get")
+                        param(StringClass, StringClass)
+                        returnType(StringClass)
+                    }.get(null).invoke<String>("ro.product.model", "unknown")?.let { model ->
+                        YLog.info("WeChat got default device model: $model")
+                        val authCacheDir = File(appInfo.dataDir, ".auth_cache")
+                        authCacheDir.listFiles()?.forEach { dir ->
+                            if (dir.listFiles()?.any { it.readText().contains(model) } == true) {
+                                YLog.info("WeChat found original device model in auth cache: $model")
+                                authCacheDir.deleteRecursively()
+                                Process.killProcess(Process.myPid())
+                            }
+                        }
+                    }
+                } catch (e: Throwable) {
+                    YLog.error("WeChat error: $e")
+                }
             }
         }
     }
