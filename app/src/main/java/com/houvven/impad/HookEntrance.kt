@@ -13,7 +13,6 @@ import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
 import com.highcapable.yukihookapi.hook.type.android.BuildClass
 import com.highcapable.yukihookapi.hook.type.java.BooleanClass
 import com.highcapable.yukihookapi.hook.type.java.BooleanType
-import com.highcapable.yukihookapi.hook.type.java.IntType
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 import java.io.File
@@ -88,14 +87,16 @@ object HookEntrance : IYukiHookXposedInit {
 
     private fun PackageParam.processWeWork() {
         val targetClassName = "com.tencent.wework.foundation.impl.WeworkServiceImpl"
-        val targetMethodName = "isAndroidPad"
         ApplicationClass.method {
             name("attach")
         }.hook().after {
             val context = args[0] as Context
             val classLoader = context.classLoader
             val clazz = targetClassName.toClass(classLoader)
-            clazz.method { name(targetMethodName) }.hook().replaceToTrue()
+            clazz.method {
+                name { it.startsWith("isAndroidPad") }
+                returnType(BooleanType)
+            }.hook().replaceToTrue()
         }
     }
 
@@ -104,7 +105,7 @@ object HookEntrance : IYukiHookXposedInit {
             "com.android.alibaba.ip.runtime.IpChange".toClass()
         searchClass(name = "ding_talk_foldable") {
             from("com.alibaba.android.dingtalkbase.foldable")
-            field { type = BooleanClass; modifiers { isStatic } }.count { it >= 2}
+            field { type = BooleanClass; modifiers { isStatic } }.count { it >= 2 }
             field { type = ipChangeClass; modifiers { isStatic } }.count(1)
             method { returnType = BooleanType }.count { it >= 6 }
         }.wait { target ->
