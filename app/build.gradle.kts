@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.houvven.impad"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = namespace
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 6
         versionName = "1.0.5"
         vectorDrawables {
@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.yukihookapi)
     implementation(libs.dexkit)
+    implementation(libs.kavaref.core)
+    implementation(libs.kavaref.extension)
     compileOnly(libs.xposed.api)
     ksp(libs.yukihookapi.ksp)
 }

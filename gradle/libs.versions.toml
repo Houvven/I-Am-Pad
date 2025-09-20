@@ -1,11 +1,13 @@
 [versions]
-agp = "8.7.3"
+agp = "8.13.0"
 apiVersion = "82"
 dexkit = "2.0.7"
-kotlin = "2.1.0"
-appcompat = "1.7.0"
-yukihookapi = "1.2.1"
-ksp = "2.1.0-1.0.29"
+kotlin = "2.2.20"
+appcompat = "1.7.1"
+yukihookapi = "1.3.1"
+ksp = "2.2.20-2.0.3"
+kavaref-core = "1.0.1"
+kavaref-extension = "1.0.1"
 
 [libraries]
 dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
@@ -13,6 +15,8 @@ yukihookapi = { module = "com.highcapable.yukihookapi:api", version.ref = "yukih
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 yukihookapi-ksp = { module = "com.highcapable.yukihookapi:ksp-xposed", version.ref = "yukihookapi" }
 xposed-api = { module = "de.robv.android.xposed:api", version.ref = "apiVersion" }
+kavaref-core = { module = "com.highcapable.kavaref:kavaref-core", version.ref = "kavaref-core" }
+kavaref-extension = { module = "com.highcapable.kavaref:kavaref-extension", version.ref = "kavaref-extension" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

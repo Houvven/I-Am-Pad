@@ -1,20 +1,18 @@
 package com.houvven.impad
 
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.os.Process
 import androidx.core.content.edit
+import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.extension.toClass
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.highcapable.yukihookapi.hook.param.PackageParam
-import com.highcapable.yukihookapi.hook.type.android.ActivityClass
-import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
-import com.highcapable.yukihookapi.hook.type.android.BuildClass
-import com.highcapable.yukihookapi.hook.type.java.BooleanClass
-import com.highcapable.yukihookapi.hook.type.java.BooleanType
-import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.wrap.DexMethod
@@ -23,6 +21,11 @@ import java.lang.reflect.Modifier
 
 @InjectYukiHookWithXposed
 object HookEntrance : IYukiHookXposedInit {
+
+    private val SystemPropertiesClass = "android.os.SystemProperties".toClass()
+
+    private val Context.dexkitPrefs
+        get() = getSharedPreferences("dexkit", Context.MODE_PRIVATE)
 
     @Suppress("SpellCheckingInspection")
     private val customWeWorkPackages = arrayOf(
@@ -40,10 +43,10 @@ object HookEntrance : IYukiHookXposedInit {
     override fun onHook() = YukiHookAPI.encase {
         loadApp {
             when {
-                packageName.contains(QQ_PACKAGE_NAME) -> processQQ()
-                packageName.contains(WECHAT_PACKAGE_NAME) -> processWeChat()
-                packageName.contains(WEWORK_PACKAGE_NAME) -> processWeWork()
-                packageName.contains(DING_TALK_PACKAGE_NAME) -> processDingTalk()
+                packageName.contains("com.tencent.mobileqq") -> processQQ()
+                packageName.contains("com.tencent.mm") -> processWeChat()
+                packageName.contains("com.tencent.wework") -> processWeWork()
+                packageName.contains("com.alibaba.android.rimet") -> processDingTalk()
                 packageName in customWeWorkPackages -> processCustomWeWork()
                 packageName.contains("com.xingin.xhs") -> processXhs()
             }
@@ -75,11 +78,11 @@ object HookEntrance : IYukiHookXposedInit {
         onAppLifecycle {
             onCreate {
                 try {
-                    SystemPropertiesClass.method {
+                    SystemPropertiesClass.resolve().firstMethod {
                         name("get")
-                        param(StringClass, StringClass)
-                        returnType(StringClass)
-                    }.get(null).invoke<String>("ro.product.model", "unknown")?.let { model ->
+                        parameters(String::class, String::class)
+                        returnType(String::class)
+                    }.invoke<String>("ro.product.model", "unknown")?.let { model ->
                         YLog.debug("WeChat got default device model: $model")
                         val authCacheDir = File(appInfo.dataDir, ".auth_cache")
                         authCacheDir.listFiles()?.forEach { dir ->
@@ -98,57 +101,75 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processWeWork() {
-        val targetClassName = "com.tencent.wework.foundation.impl.WeworkServiceImpl"
-        ApplicationClass.method {
+        Application::class.resolve().firstMethod {
             name("attach")
         }.hook().after {
             val context = args[0] as Context
             val classLoader = context.classLoader
-            val clazz = targetClassName.toClass(classLoader)
-            clazz.method {
-                name { it.startsWith("isAndroidPad") }
-                returnType(BooleanType)
-            }.hookAll().replaceToTrue()
+            "com.tencent.wework.foundation.impl.WeworkServiceImpl".toClass(classLoader)
+                .resolve()
+                .method {
+                    name { it.startsWith("isAndroidPad") }
+                    returnType(Boolean::class)
+                }
+                .hookAll().replaceToTrue()
         }
     }
 
-    private fun PackageParam.processDingTalk() {
-        val ipChangeClass =
-            "com.android.alibaba.ip.runtime.IpChange".toClass()
-        searchClass(name = "ding_talk_foldable") {
-            from("com.alibaba.android.dingtalkbase.foldable")
-            field { type = BooleanClass; modifiers { isStatic } }.count { it >= 2 }
-            field { type = ipChangeClass; modifiers { isStatic } }.count(1)
-            method { returnType = BooleanType }.count { it >= 6 }
-        }.wait { target ->
-            if (target == null) {
-                return@wait YLog.error("not found ding talk target class.")
-            }
-            YLog.debug("Ding talk target class ${target.name}")
-            target.method { param(ActivityClass); returnType(BooleanType) }.hook().replaceToTrue()
-        }
-    }
-
-    private fun PackageParam.processCustomWeWork() {
-        System.loadLibrary("dexkit")
-
-        ApplicationClass.method {
-            name("attach")
-        }.hook().after {
-            val context = args[0] as Context
+    private fun PackageParam.processDingTalk() = onAppLifecycle {
+        attachBaseContext { context, hasCalledSuper ->
+            System.loadLibrary("dexkit")
             val classLoader = context.classLoader
-            val prefs = context.getSharedPreferences("dexkit_cache", Context.MODE_PRIVATE)
+            val prefs = context.dexkitPrefs
+            val cacheKey = "isMultiLoginFoldableDevice_method"
+            val dexKit = DexKitBridge.create(classLoader, true)
 
-            @Suppress("DEPRECATION")
-            val versionCode = context.packageManager.getPackageInfo(packageName, 0).versionCode
+            try {
+                DexMethod(prefs.getString(cacheKey, "")!!).getMethodInstance(classLoader).also {
+                    YLog.debug("DingTalk got isMultiLoginFoldableDevice_method: $it")
+                }
+            } catch (t: Throwable) {
+                if (t !is NoSuchMethodException && t !is IllegalAccessError) {
+                    throw t
+                }
+                dexKit.findMethod {
+                    searchPackages("com.alibaba.android.dingtalkbase.foldable")
+                    matcher {
+                        modifiers(Modifier.STATIC)
+                        paramTypes(Activity::class.java)
+                        returnType(Boolean::class.javaPrimitiveType!!)
+                        usingStrings("isMultiLoginFoldableDevice")
+                        addUsingField { type("com.android.alibaba.ip.runtime.IpChange") }
+                    }
+                }.single().toDexMethod().run {
+                    prefs.edit { putString(cacheKey, serialize()) }
+                    getMethodInstance(context.classLoader)
+                }
+            }.hook().replaceToTrue()
+        }
+    }
 
-            val cachedSerialized = prefs.getString("isPadJudge_method", null)
-            val cachedVersionCode = prefs.getInt("version_code", 0)
-            if (cachedSerialized.isNullOrBlank() || cachedVersionCode != versionCode) {
-                DexKitBridge.create(classLoader, true).findMethod {
+    @SuppressLint("DuplicateCreateDexKit")
+    private fun PackageParam.processCustomWeWork() = onAppLifecycle {
+        attachBaseContext { context, hasCalledSuper ->
+            System.loadLibrary("dexkit")
+            val classLoader = context.classLoader
+            val prefs = context.dexkitPrefs
+            val cacheKey = "isPadJudge_method"
+            val dexkit = DexKitBridge.create(classLoader, true)
+
+            try {
+                DexMethod(prefs.getString(cacheKey, "")!!).getMethodInstance(classLoader).also {
+                    YLog.debug("CustomWeWork[$packageName] got isPadJudge_method: $it")
+                }
+            } catch (t: Throwable) {
+                if (t !is NoSuchMethodException && t !is IllegalAccessError) {
+                    throw t
+                }
+                dexkit.findMethod {
                     matcher {
                         declaredClass("com.tencent.wework.common.utils.WwUtil")
-                        returnType(BooleanType)
+                        returnType(Boolean::class.javaPrimitiveType!!)
                         paramCount(0)
                         modifiers(Modifier.STATIC)
                         usingStrings(
@@ -158,23 +179,17 @@ object HookEntrance : IYukiHookXposedInit {
                         )
                     }
                 }.single().toDexMethod().run {
-                    getMethodInstance(classLoader).hook().replaceToTrue()
-                    prefs.edit {
-                        putString("isPadJudge_method", serialize())
-                        putInt("version_code", versionCode)
-                    }
+                    prefs.edit { putString("isPadJudge_method", serialize()) }
+                    getMethodInstance(classLoader)
                 }
-            } else {
-                YLog.debug("Wecompro got cached isPadJudge method.")
-                DexMethod(cachedSerialized).getMethodInstance(classLoader).hook().replaceToTrue()
-            }
+            }.hook().replaceToTrue()
         }
     }
 
     private fun PackageParam.processXhs() {
         onAppLifecycle {
             onCreate {
-                "com.xingin.adaptation.device.DeviceInfoContainer".toClass().run {
+                "com.xingin.adaptation.device.DeviceInfoContainer".toClass().resolve().run {
                     method { name("isPad") }.hookAll().replaceToTrue()
                     method { name("getSavedDeviceType") }.hookAll().replaceTo("pad")
                 }
@@ -182,33 +197,22 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun PackageParam.simulateTabletModel(
+    private fun simulateTabletModel(
         brand: String,
         model: String,
         manufacturer: String = brand
     ) {
-        BuildClass.run {
-            field { name("MANUFACTURER") }.get(null).set(manufacturer)
-            field { name("BRAND") }.get(null).set(brand)
-            field { name("MODEL") }.get(null).set(model)
-        }
-        SystemPropertiesClass.method {
-            name("get")
-            param(StringClass, StringClass)
-            returnType(StringClass)
-        }.hook().after {
-            when (args[0]) {
-                "ro.product.model" -> result = model
-                "ro.product.brand" -> result = brand
-                "ro.product.manufacturer" -> result = manufacturer
-            }
+        Build::class.resolve().run {
+            firstField { name("MANUFACTURER") }.set(manufacturer)
+            firstField { name("BRAND") }.set(brand)
+            firstField { name("MODEL") }.set(model)
         }
     }
 
     private fun PackageParam.simulateTabletProperties() {
-        SystemPropertiesClass.method {
+        SystemPropertiesClass.resolve().firstMethod {
             name("get")
-            returnType(StringClass)
+            returnType(String::class)
         }.hook().before {
             if (args[0] == "ro.build.characteristics") {
                 result = "tablet"
