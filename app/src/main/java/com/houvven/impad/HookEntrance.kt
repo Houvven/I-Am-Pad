@@ -96,7 +96,7 @@ object HookEntrance : IYukiHookXposedInit {
             clazz.method {
                 name { it.startsWith("isAndroidPad") }
                 returnType(BooleanType)
-            }.hook().replaceToTrue()
+            }.hookAll().replaceToTrue()
         }
     }
 
