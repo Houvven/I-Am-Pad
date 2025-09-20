@@ -48,6 +48,7 @@ android {
 dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.yukihookapi)
+    implementation(libs.dexkit)
     compileOnly(libs.xposed.api)
     ksp(libs.yukihookapi.ksp)
 }

@@ -1,12 +1,14 @@
 [versions]
 agp = "8.7.3"
 apiVersion = "82"
+dexkit = "2.0.7"
 kotlin = "2.1.0"
 appcompat = "1.7.0"
 yukihookapi = "1.2.1"
 ksp = "2.1.0-1.0.29"
 
 [libraries]
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
 yukihookapi = { module = "com.highcapable.yukihookapi:api", version.ref = "yukihookapi" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 yukihookapi-ksp = { module = "com.highcapable.yukihookapi:ksp-xposed", version.ref = "yukihookapi" }
