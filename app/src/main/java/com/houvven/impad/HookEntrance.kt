@@ -2,6 +2,7 @@ package com.houvven.impad
 
 import android.content.Context
 import android.os.Process
+import androidx.core.content.edit
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.factory.field
@@ -15,7 +16,10 @@ import com.highcapable.yukihookapi.hook.type.java.BooleanClass
 import com.highcapable.yukihookapi.hook.type.java.BooleanType
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import org.luckypray.dexkit.DexKitBridge
+import org.luckypray.dexkit.wrap.DexMethod
 import java.io.File
+import java.lang.reflect.Modifier
 
 @InjectYukiHookWithXposed
 object HookEntrance : IYukiHookXposedInit {
@@ -34,6 +38,7 @@ object HookEntrance : IYukiHookXposedInit {
                 packageName.contains(WECHAT_PACKAGE_NAME) -> processWeChat()
                 packageName.contains(WEWORK_PACKAGE_NAME) -> processWeWork()
                 packageName.contains(DING_TALK_PACKAGE_NAME) -> processDingTalk()
+                packageName.contains("com.airchina.wecompro") -> processWecompro()
             }
         }
     }
@@ -114,6 +119,47 @@ object HookEntrance : IYukiHookXposedInit {
             }
             YLog.debug("Ding talk target class ${target.name}")
             target.method { param(ActivityClass); returnType(BooleanType) }.hook().replaceToTrue()
+        }
+    }
+
+    private fun PackageParam.processWecompro() {
+        System.loadLibrary("dexkit")
+
+        ApplicationClass.method {
+            name("attach")
+        }.hook().after {
+            val context = args[0] as Context
+            val classLoader = context.classLoader
+            val dexkit = DexKitBridge.create(classLoader, true)
+            val prefs = context.getSharedPreferences("dexkit_cache", Context.MODE_PRIVATE)
+            val versionCode = context.packageManager.getPackageInfo(packageName, 0).versionCode
+
+            val cachedSerialized = prefs.getString("isPadJudge_method", null)
+            val cachedVersionCode = prefs.getInt("version_code", 0)
+            if (cachedSerialized.isNullOrBlank() || cachedVersionCode != versionCode) {
+                dexkit.findMethod {
+                    matcher {
+                        declaredClass("com.tencent.wework.common.utils.WwUtil")
+                        returnType(BooleanType)
+                        paramCount(0)
+                        modifiers(Modifier.STATIC)
+                        usingStrings(
+                            "isPadJudge",
+                            "isPadWhiteListFromServer", "isPadBlackListFromServer",
+                            "isPadWhiteListFromLocal", "isPadBlackListFromLocal"
+                        )
+                    }
+                }.single().toDexMethod().also { dexMethod ->
+                    prefs.edit {
+                        putString("isPadJudge_method", dexMethod.serialize())
+                        putInt("version_code", versionCode)
+                    }
+                    dexMethod.getMethodInstance(classLoader).hook().replaceToTrue()
+                }
+            } else {
+                YLog.debug("Wecompro got cached isPadJudge method.")
+                DexMethod(cachedSerialized).getMethodInstance(classLoader).hook().replaceToTrue()
+            }
         }
     }
 
