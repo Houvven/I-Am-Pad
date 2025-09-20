@@ -45,6 +45,7 @@ object HookEntrance : IYukiHookXposedInit {
                 packageName.contains(WEWORK_PACKAGE_NAME) -> processWeWork()
                 packageName.contains(DING_TALK_PACKAGE_NAME) -> processDingTalk()
                 packageName in customWeWorkPackages -> processCustomWeWork()
+                packageName.contains("com.xingin.xhs") -> processXhs()
             }
         }
     }
@@ -137,6 +138,8 @@ object HookEntrance : IYukiHookXposedInit {
             val context = args[0] as Context
             val classLoader = context.classLoader
             val prefs = context.getSharedPreferences("dexkit_cache", Context.MODE_PRIVATE)
+
+            @Suppress("DEPRECATION")
             val versionCode = context.packageManager.getPackageInfo(packageName, 0).versionCode
 
             val cachedSerialized = prefs.getString("isPadJudge_method", null)
@@ -168,11 +171,37 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun simulateTabletModel(brand: String, model: String, manufacturer: String = brand) {
+    private fun PackageParam.processXhs() {
+        onAppLifecycle {
+            onCreate {
+                "com.xingin.adaptation.device.DeviceInfoContainer".toClass().run {
+                    method { name("isPad") }.hookAll().replaceToTrue()
+                    method { name("getSavedDeviceType") }.hookAll().replaceTo("pad")
+                }
+            }
+        }
+    }
+
+    private fun PackageParam.simulateTabletModel(
+        brand: String,
+        model: String,
+        manufacturer: String = brand
+    ) {
         BuildClass.run {
             field { name("MANUFACTURER") }.get(null).set(manufacturer)
             field { name("BRAND") }.get(null).set(brand)
             field { name("MODEL") }.get(null).set(model)
+        }
+        SystemPropertiesClass.method {
+            name("get")
+            param(StringClass, StringClass)
+            returnType(StringClass)
+        }.hook().after {
+            when (args[0]) {
+                "ro.product.model" -> result = model
+                "ro.product.brand" -> result = brand
+                "ro.product.manufacturer" -> result = manufacturer
+            }
         }
     }
 
