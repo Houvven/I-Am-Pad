@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -28,6 +29,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+    buildOutputs {
+        all {
+            (this as BaseVariantOutputImpl).outputFileName =
+                "Impad-v${defaultConfig.versionName}-${name}.apk"
         }
     }
     buildFeatures {
