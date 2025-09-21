@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Process
 import androidx.core.content.edit
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.extension.hasClass
 import com.highcapable.kavaref.extension.toClass
 import com.highcapable.yukihookapi.YukiHookAPI
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
@@ -33,7 +34,9 @@ object HookEntrance : IYukiHookXposedInit {
     @Suppress("SpellCheckingInspection")
     private val customWeWorkPackages = arrayOf(
         "com.airchina.wecompro",
-        "com.zwfw.YueZhengYi"
+        "com.zwfw.YueZhengYi",
+        "com.cscec.portal",
+        "cn.powerchina.pact"
     )
 
     private lateinit var dexkit: DexKitBridge
@@ -52,7 +55,8 @@ object HookEntrance : IYukiHookXposedInit {
                 packageName.contains("com.tencent.mm") -> processWeChat()
                 packageName.contains("com.tencent.wework") -> processWeWork()
                 packageName.contains("com.alibaba.android.rimet") -> processDingTalk()
-                packageName in customWeWorkPackages -> processCustomWeWork()
+                isCustomWeWorkPackage(packageName) -> processCustomWeWork()
+                isCustomWeWorkPackage(appClassLoader) -> processCustomWeWork()
                 packageName.contains("com.xingin.xhs") -> processXhs()
             }
         }
@@ -170,7 +174,11 @@ object HookEntrance : IYukiHookXposedInit {
                         returnType(Boolean::class.javaPrimitiveType!!)
                         paramCount(0)
                         modifiers(Modifier.STATIC)
-                        usingStrings("isPadJudge", "isPadWhiteList")
+                        usingStrings(
+                            "isPadJudge",
+                            "isPadWhiteListFromServer", "isPadBlackListFromServer",
+                            "isPadWhiteListFromLocal", "isPadBlackListFromLocal"
+                        )
                     }
                 }.single().toDexMethod()
             }.hook().replaceToTrue()
@@ -232,4 +240,9 @@ object HookEntrance : IYukiHookXposedInit {
             }
         }
     }
+
+    private fun isCustomWeWorkPackage(pkg: String) = pkg in customWeWorkPackages
+
+    private fun isCustomWeWorkPackage(classLoader: ClassLoader?) =
+        classLoader?.hasClass("com.tencent.wework.common.utils.WwUtil") == true
 }
