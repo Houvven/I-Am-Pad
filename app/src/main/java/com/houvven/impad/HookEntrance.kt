@@ -178,13 +178,9 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processXhs() {
-        onAppLifecycle {
-            onCreate {
-                "com.xingin.adaptation.device.DeviceInfoContainer".toClass().resolve().run {
-                    method { name("isPad") }.hookAll().replaceToTrue()
-                    method { name("getSavedDeviceType") }.hookAll().replaceTo("pad")
-                }
-            }
+        "com.xingin.adaptation.device.DeviceInfoContainer".toClass().resolve().run {
+            method { name("isPad") }.hookAll().replaceToTrue()
+            method { name("getSavedDeviceType") }.hookAll().replaceTo("pad")
         }
     }
 
