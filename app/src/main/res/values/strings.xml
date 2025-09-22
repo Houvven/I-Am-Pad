@@ -1,6 +1,4 @@
 <resources>
     <string name="app_name" translatable="false">I\'m Pad</string>
     <string name="module_desc">Enable Pad login on mobile phone.</string>
-    <string name="title_activity_main">MainActivity</string>
-    <string name="clear_cache_tips">QQ and WeChat need to clear specific caches before they can be used normally</string>
 </resources>
