@@ -34,7 +34,19 @@ jobs:
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - uses: jungwinter/split@v2
+        id: signed_files
+        with:
+          msg: ${{ steps.sign_app.outputs.signedFiles }}
+          separator: ':'
+
       - uses: actions/upload-artifact@v4
         with:
           name: Signed app bundle
-          path: ${{steps.sign_app.outputs.signedFiles}}
+          path: |
+            ${{ steps.signed_files.outputs._0 }}
+            ${{ steps.signed_files.outputs._1 }}
+            ${{ steps.signed_files.outputs._2 }}
+            ${{ steps.signed_files.outputs._3 }}
+            ${{ steps.signed_files.outputs._4 }}
+            app/build/outputs/apk/debug/Impad-*-universal-debug.apk
