@@ -40,9 +40,10 @@ jobs:
           msg: ${{ steps.sign_app.outputs.signedFiles }}
           separator: ':'
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Signed app bundle
+          name: i.am.pad-release apk
           path: |
             ${{ steps.signed_files.outputs._0 }}
             ${{ steps.signed_files.outputs._1 }}
@@ -50,3 +51,9 @@ jobs:
             ${{ steps.signed_files.outputs._3 }}
             ${{ steps.signed_files.outputs._4 }}
             app/build/outputs/apk/debug/Impad-*-universal-debug.apk
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: i.am.pad-debug apk
+          path: app/build/outputs/apk/debug/Impad-*-debug.apk
