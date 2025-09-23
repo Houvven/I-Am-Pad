@@ -3,6 +3,7 @@ name: Android CI
 on:
   push:
     branches: [ "master" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "master" ]
 
@@ -10,20 +11,49 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - uses: actions/checkout@v4
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew assemble
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew assemble
 
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        path: ./app/build/outputs/apk
+      - uses: ilharp/sign-android-release@v2
+        name: Sign app APK
+        id: sign_app
+        with:
+          releaseDir: app/build/outputs/apk/release
+          signingKey: ${{ secrets.ANDROID_SIGNING_KEY }}
+          keyAlias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - uses: jungwinter/split@v2
+        id: signed_files
+        with:
+          msg: ${{ steps.sign_app.outputs.signedFiles }}
+          separator: ':'
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: i.am.pad-release apk
+          path: |
+            ${{ steps.signed_files.outputs._0 }}
+            ${{ steps.signed_files.outputs._1 }}
+            ${{ steps.signed_files.outputs._2 }}
+            ${{ steps.signed_files.outputs._3 }}
+            ${{ steps.signed_files.outputs._4 }}
+            app/build/outputs/apk/debug/Impad-*-universal-debug.apk
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: i.am.pad-debug apk
+          path: app/build/outputs/apk/debug/Impad-*-debug.apk
