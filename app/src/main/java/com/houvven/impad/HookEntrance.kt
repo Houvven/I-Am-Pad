@@ -29,7 +29,7 @@ object HookEntrance : IYukiHookXposedInit {
     private val SystemPropertiesClass = "android.os.SystemProperties".toClass()
 
     private val Context.dexkitPrefs
-        get() = getSharedPreferences("dexkit", Context.MODE_PRIVATE)
+        get() = getSharedPreferences("IAMPAD_dexkit", Context.MODE_PRIVATE)
 
     @Suppress("SpellCheckingInspection")
     private val customWeWorkPackages = arrayOf(
@@ -233,11 +233,23 @@ object HookEntrance : IYukiHookXposedInit {
         classLoader?.hasClass("com.tencent.wework.common.utils.WwUtil") == true
 
     private fun PackageParam.afterApplicationAttach(action: (Context) -> Unit) {
-        Application::class.resolve().firstMethod {
-            name("attach")
-            parameters(Context::class)
-        }.hook().after {
-            action(args[0] as Context)
+        val tinkerApplicationClass =
+            "com.tencent.tinker.loader.app.TinkerApplication".toClassOrNull()
+
+        val actionWrapper: (Context) -> Unit = { context ->
+            runCatching { action(context) }.onFailure {
+                YLog.error("Failed to execute afterApplicationAttach hook", it)
+            }
+        }
+
+        if (tinkerApplicationClass != null) {
+            tinkerApplicationClass.resolve()
+                .firstMethod { name("onBaseContextAttached") }.hook()
+                .after { actionWrapper(args[0] as Context) }
+        } else {
+            Application::class.resolve()
+                .firstMethod { name("onCreate") }.hook()
+                .before { actionWrapper(instance()) }
         }
     }
 }
