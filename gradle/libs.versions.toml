@@ -1,25 +1,32 @@
 [versions]
 agp = "8.13.0"
-apiVersion = "82"
-dexkit = "2.0.7"
-kotlin = "2.2.20"
+androidvmtools = "118f566096"
 appcompat = "1.7.1"
-yukihookapi = "1.3.1"
-ksp = "2.2.20-2.0.3"
+dexkit = "2.0.7"
 kavaref-core = "1.0.1"
 kavaref-extension = "1.0.1"
+kotlin = "2.2.20"
+ksp = "2.2.20-2.0.3"
+r8_annotations = "v0.0.3"
+xposed = "82"
+yukihookapi = "1.3.1"
+zygisk = "358a146d87"
 
 [libraries]
-dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
-yukihookapi = { module = "com.highcapable.yukihookapi:api", version.ref = "yukihookapi" }
+androidvmtools = { module = "com.github.vova7878:AndroidVMTools", version.ref = "androidvmtools" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-yukihookapi-ksp = { module = "com.highcapable.yukihookapi:ksp-xposed", version.ref = "yukihookapi" }
-xposed-api = { module = "de.robv.android.xposed:api", version.ref = "apiVersion" }
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
 kavaref-core = { module = "com.highcapable.kavaref:kavaref-core", version.ref = "kavaref-core" }
 kavaref-extension = { module = "com.highcapable.kavaref:kavaref-extension", version.ref = "kavaref-extension" }
+r8-annotations = { module = "com.github.vova7878:R8Annotations", version.ref = "r8_annotations" }
+xposed-api = { module = "de.robv.android.xposed:api", version.ref = "xposed" }
+yukihookapi = { module = "com.highcapable.yukihookapi:api", version.ref = "yukihookapi" }
+yukihookapi-ksp = { module = "com.highcapable.yukihookapi:ksp-xposed", version.ref = "yukihookapi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+java-zygisk = { id = "com.github.vova7878.ZygoteLoader", version.ref = "zygisk" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 

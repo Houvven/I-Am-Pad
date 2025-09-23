@@ -1,0 +1,38 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.java.zygisk)
+}
+
+android {
+    namespace = "com.houvven.impad"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = namespace
+        minSdk = 26
+        targetSdk = 36
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+zygisk {
+    packages("com.tencent.mm")
+    id = "com_houvven_impad_zygisk"
+    name = "Zygisk - I Am Pad"
+    archiveName = "zygisk-i-am-pad"
+    author = "Houvven"
+    description = "Enabled Pad login on phone device. Support: WeChat, WeWork, QQ, DingTalk, XHS(RedNote)."
+    entrypoint = "com.houvven.impad.zygisk.Main"
+    attachNativeLibs = true
+    generateChecksums = true
+}
+
+
+dependencies {
+    implementation(libs.dexkit)
+    implementation(libs.androidvmtools)
+    implementation(libs.r8.annotations)
+}
