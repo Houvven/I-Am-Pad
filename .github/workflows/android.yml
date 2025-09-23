@@ -34,18 +34,11 @@ jobs:
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - uses: jungwinter/split@v2
-        id: signed_files
-        with:
-          msg: ${{ steps.sign_app.outputs.signedFiles }}
-          separator: ':'
-
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: i.am.pad-release apk
-          path: |
-            ${{ steps.signed_files.outputs._0 }}
+          path: app/build/outputs/apk/debug/*signed.apk
 
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
