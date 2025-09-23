@@ -46,14 +46,9 @@ jobs:
           name: i.am.pad-release apk
           path: |
             ${{ steps.signed_files.outputs._0 }}
-            ${{ steps.signed_files.outputs._1 }}
-            ${{ steps.signed_files.outputs._2 }}
-            ${{ steps.signed_files.outputs._3 }}
-            ${{ steps.signed_files.outputs._4 }}
-            app/build/outputs/apk/debug/Impad-*-universal-debug.apk
 
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
         with:
           name: i.am.pad-debug apk
-          path: app/build/outputs/apk/debug/Impad-*-debug.apk
+          path: app/build/outputs/apk/debug/*.apk
