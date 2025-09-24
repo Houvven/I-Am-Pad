@@ -1,13 +1,10 @@
 package com.houvven.impad
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.Process
-import androidx.core.content.edit
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.hasClass
 import com.highcapable.kavaref.extension.toClass
@@ -16,20 +13,16 @@ import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
-import org.luckypray.dexkit.DexKitBridge
-import org.luckypray.dexkit.wrap.DexMethod
+import com.houvven.impad.finder.TargetMethodFinder.custom_wework_is_pad_judge
+import com.houvven.impad.finder.TargetMethodFinder.dingtalk_is_fold_device
+import com.houvven.impad.finder.TargetMethodFinder.wechat_is_fold_device
+import com.houvven.impad.finder.TargetMethodFinder.wechat_check_login_as_pad
 import java.io.File
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import kotlin.coroutines.Continuation
 
 @InjectYukiHookWithXposed
 object HookEntrance : IYukiHookXposedInit {
 
     private val SystemPropertiesClass = "android.os.SystemProperties".toClass()
-
-    private val Context.dexkitPrefs
-        get() = getSharedPreferences("IAMPAD_dexkit", Context.MODE_PRIVATE)
 
     @Suppress("SpellCheckingInspection")
     private val customWeWorkPackages = arrayOf(
@@ -38,8 +31,6 @@ object HookEntrance : IYukiHookXposedInit {
         "com.cscec.portal",
         "cn.powerchina.pact"
     )
-
-    private lateinit var dexkit: DexKitBridge
 
     override fun onInit() = YukiHookAPI.configs {
         isDebug = BuildConfig.DEBUG
@@ -83,39 +74,8 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processWeChat() = afterApplicationAttach { context ->
-        val prefs = context.dexkitPrefs
-        val classLoader = context.classLoader
-
-        findOrLoadMethod(prefs, "checkLoginAsPad_method", classLoader) {
-            findMethod {
-                excludePackages("android", "androidx", "com")
-                matcher {
-                    modifiers(Modifier.PUBLIC or Modifier.FINAL)
-                    paramCount(3)
-                    paramTypes(
-                        String::class.java,
-                        String::class.java,
-                        Continuation::class.java
-                    )
-                    usingStrings(
-                        "MicroMsg.CgiCheckLoginAsPad",
-                        "/cgi-bin/micromsg-bin/checkloginaspad"
-                    )
-                }
-            }.single().toDexMethod()
-        }.hook().replaceToTrue()
-
-        findOrLoadMethod(prefs, "isFoldableDevice_method", classLoader) {
-            findMethod {
-                searchPackages("com.tencent.mm.ui")
-                matcher {
-                    modifiers(Modifier.PUBLIC or Modifier.STATIC)
-                    paramCount(0)
-                    usingStrings("royole", "tecno", "ro.os_foldable_screen_support")
-                    returnType(Boolean::class.javaPrimitiveType!!)
-                }
-            }.single().toDexMethod()
-        }.hook().replaceToTrue()
+        wechat_is_fold_device(context).hook().replaceToTrue()
+        wechat_check_login_as_pad(context).hook().replaceToTrue()
     }
 
     private fun PackageParam.processWeWork() = afterApplicationAttach { context ->
@@ -130,45 +90,12 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processDingTalk() = afterApplicationAttach { context ->
-        val classLoader = context.classLoader
-        val prefs = context.dexkitPrefs
-        val cacheKey = "isMultiLoginFoldableDevice_method"
-
-        findOrLoadMethod(prefs, cacheKey, classLoader) {
-            findMethod {
-                searchPackages("com.alibaba.android.dingtalkbase.foldable")
-                matcher {
-                    modifiers(Modifier.STATIC)
-                    paramCount(1)
-                    paramTypes(Activity::class.java)
-                    returnType(Boolean::class.javaPrimitiveType!!)
-                    usingStrings("isMultiLoginFoldableDevice")
-                }
-            }.single().toDexMethod()
-        }.hook().replaceToTrue()
+        dingtalk_is_fold_device(context).hook().replaceToTrue()
     }
 
     @SuppressLint("DuplicateCreateDexKit")
     private fun PackageParam.processCustomWeWork() = afterApplicationAttach { context ->
-        val classLoader = context.classLoader
-        val prefs = context.dexkitPrefs
-        val cacheKey = "isPadJudge_method"
-
-        findOrLoadMethod(prefs, cacheKey, classLoader) {
-            findMethod {
-                matcher {
-                    declaredClass("com.tencent.wework.common.utils.WwUtil")
-                    returnType(Boolean::class.javaPrimitiveType!!)
-                    paramCount(0)
-                    modifiers(Modifier.STATIC)
-                    usingStrings(
-                        "isPadJudge",
-                        "isPadWhiteListFromServer", "isPadBlackListFromServer",
-                        "isPadWhiteListFromLocal", "isPadBlackListFromLocal"
-                    )
-                }
-            }.single().toDexMethod()
-        }.hook().replaceToTrue()
+        custom_wework_is_pad_judge(context).hook().replaceToTrue()
     }
 
     private fun PackageParam.processXhs() {
@@ -197,32 +124,6 @@ object HookEntrance : IYukiHookXposedInit {
         }.hook().before {
             if (args[0] == "ro.build.characteristics") {
                 result = "tablet"
-            }
-        }
-    }
-
-    private fun findOrLoadMethod(
-        prefs: SharedPreferences,
-        cacheKey: String,
-        classLoader: ClassLoader,
-        finder: DexKitBridge.() -> DexMethod
-    ): Method {
-        return try {
-            DexMethod(prefs.getString(cacheKey, "")!!)
-                .getMethodInstance(classLoader).also {
-                    YLog.debug("Loaded cached method [$cacheKey]: $it")
-                }
-        } catch (t: Throwable) {
-            if (t !is NoSuchMethodException && t !is IllegalAccessError) throw t
-            if (!::dexkit.isInitialized) {
-                System.loadLibrary("dexkit")
-                dexkit = DexKitBridge.create(classLoader, true)
-            }
-            dexkit.finder().run {
-                prefs.edit { putString(cacheKey, serialize()) }
-                getMethodInstance(classLoader).also {
-                    YLog.debug("Found new method [$cacheKey]: $it")
-                }
             }
         }
     }

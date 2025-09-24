@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = namespace
-        minSdk = 24
+        minSdk = 27
         targetSdk = 36
         versionCode = 9
         versionName = "1.0.8"
@@ -58,6 +58,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":finder"))
     implementation(libs.androidx.appcompat)
     implementation(libs.yukihookapi)
     implementation(libs.dexkit)

@@ -38,4 +38,5 @@ kotlin {
 }
 
 dependencies {
+    api(libs.dexkit)
 }
