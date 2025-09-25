@@ -13,10 +13,12 @@ import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.highcapable.yukihookapi.hook.param.PackageParam
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
+import com.houvven.impad.finder.TargetMethodFinder
 import com.houvven.impad.finder.TargetMethodFinder.custom_wework_is_pad_judge
 import com.houvven.impad.finder.TargetMethodFinder.dingtalk_is_fold_device
-import com.houvven.impad.finder.TargetMethodFinder.wechat_is_fold_device
 import com.houvven.impad.finder.TargetMethodFinder.wechat_check_login_as_pad
+import com.houvven.impad.finder.TargetMethodFinder.wechat_is_fold_device
+import com.houvven.impad.finder.TargetMethodFinder.wework_is_pad
 import java.io.File
 
 @InjectYukiHookWithXposed
@@ -79,14 +81,7 @@ object HookEntrance : IYukiHookXposedInit {
     }
 
     private fun PackageParam.processWeWork() = afterApplicationAttach { context ->
-        val classLoader = context.classLoader
-        "com.tencent.wework.foundation.impl.WeworkServiceImpl".toClass(classLoader)
-            .resolve()
-            .method {
-                name { it.startsWith("isAndroidPad") }
-                returnType(Boolean::class)
-            }
-            .hookAll().replaceToTrue()
+        wework_is_pad(context).hookAll().replaceToTrue()
     }
 
     private fun PackageParam.processDingTalk() = afterApplicationAttach { context ->
@@ -134,19 +129,14 @@ object HookEntrance : IYukiHookXposedInit {
         classLoader?.hasClass("com.tencent.wework.common.utils.WwUtil") == true
 
     private fun PackageParam.afterApplicationAttach(action: (Context) -> Unit) {
-        val tinkerApplicationClass =
-            "com.tencent.tinker.loader.app.TinkerApplication".toClassOrNull()
-
         val actionWrapper: (Context) -> Unit = { context ->
             runCatching { action(context) }.onFailure {
                 YLog.error("Failed to execute afterApplicationAttach hook", it)
             }
         }
-
-        if (tinkerApplicationClass != null) {
-            tinkerApplicationClass.resolve()
-                .firstMethod { name("onBaseContextAttached") }.hook()
-                .after { actionWrapper(args[0] as Context) }
+        val tinkerApplicationAttach = TargetMethodFinder.tinker_application_attach()
+        if (tinkerApplicationAttach != null) {
+            tinkerApplicationAttach.hook().after { actionWrapper(args[0] as Context) }
         } else {
             Application::class.resolve()
                 .firstMethod { name("onCreate") }.hook()

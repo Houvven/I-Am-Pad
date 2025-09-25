@@ -2,9 +2,13 @@ package com.houvven.impad.finder
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.extension.toClass
+import com.highcapable.kavaref.extension.toClassOrNull
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.wrap.DexMethod
 import java.lang.reflect.Method
@@ -23,9 +27,13 @@ object TargetMethodFinder {
     private const val DEX_KIT_PREFS_NAME = "i.am.pad.dexkit"
 
     @JvmStatic
-    @JvmOverloads
-    fun wechat_is_fold_device(context: Context, dexkitLibBytes: ByteArray? = null) =
-        findOrLoadMethod(context, "is_fold_device", dexkitLibBytes) {
+    var dexkitLibLoader: Runnable = Runnable {
+        System.loadLibrary("dexkit")
+    }
+
+    @JvmStatic
+    fun wechat_is_fold_device(context: Context) =
+        findOrLoadMethod(context, "is_fold_device") {
             findMethod {
                 searchPackages("com.tencent.mm.ui")
                 matcher {
@@ -38,9 +46,8 @@ object TargetMethodFinder {
         }
 
     @JvmStatic
-    @JvmOverloads
-    fun wechat_check_login_as_pad(context: Context, dexkitLibBytes: ByteArray? = null) =
-        findOrLoadMethod(context, "check_login_as_pad", dexkitLibBytes) {
+    fun wechat_check_login_as_pad(context: Context) =
+        findOrLoadMethod(context, "check_login_as_pad") {
             findMethod {
                 excludePackages("android", "androidx", "com")
                 matcher {
@@ -60,9 +67,8 @@ object TargetMethodFinder {
         }
 
     @JvmStatic
-    @JvmOverloads
-    fun dingtalk_is_fold_device(context: Context, dexkitLibBytes: ByteArray? = null) =
-        findOrLoadMethod(context, "is_fold_device", dexkitLibBytes) {
+    fun dingtalk_is_fold_device(context: Context) =
+        findOrLoadMethod(context, "is_fold_device") {
             findMethod {
                 searchPackages("com.alibaba.android.dingtalkbase.foldable")
                 matcher {
@@ -76,9 +82,8 @@ object TargetMethodFinder {
         }
 
     @JvmStatic
-    @JvmOverloads
-    fun custom_wework_is_pad_judge(context: Context, dexkitLibBytes: ByteArray? = null) =
-        findOrLoadMethod(context, "is_pad_judge", dexkitLibBytes) {
+    fun custom_wework_is_pad_judge(context: Context) =
+        findOrLoadMethod(context, "is_pad_judge") {
             findMethod {
                 matcher {
                     declaredClass("com.tencent.wework.common.utils.WwUtil")
@@ -94,11 +99,36 @@ object TargetMethodFinder {
             }.single().toDexMethod()
         }
 
+    @JvmStatic
+    fun wework_is_pad(context: Context) =
+        "com.tencent.wework.foundation.impl.WeworkServiceImpl".toClass(context.classLoader)
+            .resolve()
+            .method {
+                name { it.startsWith("isAndroidPad") }
+                returnType(Boolean::class)
+            }.map { it.self }
+
+    @JvmStatic
+    fun application_attachBase() =
+        Application::class.resolve()
+            .firstMethod {
+                name = "attachBaseContext"
+                superclass()
+            }.self
+
+    @JvmStatic
+    @JvmOverloads
+    fun tinker_application_attach(classLoader: ClassLoader? = null) =
+        "com.tencent.tinker.loader.app.TinkerApplication".toClassOrNull(classLoader)?.run {
+            resolve().firstMethod {
+                name = "onBaseContextAttached"
+            }.self
+        }
+
     @SuppressLint("UseKtx", "UnsafeDynamicallyLoadedCode")
     private fun findOrLoadMethod(
         context: Context,
         cacheKey: String,
-        dexkitLibBytes: ByteArray? = null,
         finder: DexKitBridge.() -> DexMethod
     ): Method {
         val classLoader = context.classLoader
@@ -113,16 +143,7 @@ object TargetMethodFinder {
         } catch (t: Throwable) {
             if (t !is NoSuchMethodException && t !is IllegalAccessError) throw t
             if (!::dexkit.isInitialized) {
-                if (dexkitLibBytes == null) {
-                    System.loadLibrary("dexkit")
-                } else {
-                    val dexkitLib = context.filesDir.resolve("libdexkit.so")
-                    if (!dexkitLib.exists()) {
-                        dexkitLib.createNewFile()
-                        dexkitLib.writeBytes(dexkitLibBytes)
-                    }
-                    System.load(dexkitLib.absolutePath)
-                }
+                dexkitLibLoader.run()
                 dexkit = DexKitBridge.create(classLoader, true)
             }
             dexkit.finder().run {

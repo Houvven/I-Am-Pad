@@ -1,5 +1,4 @@
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,12 +8,9 @@ plugins {
 
 android {
     namespace = "com.houvven.impad"
-    compileSdk = 36
 
     defaultConfig {
         applicationId = namespace
-        minSdk = 27
-        targetSdk = 36
         versionCode = 9
         versionName = "1.0.8"
         vectorDrawables {
@@ -40,20 +36,10 @@ android {
     buildFeatures {
         buildConfig = true
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
