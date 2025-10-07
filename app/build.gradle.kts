@@ -15,8 +15,8 @@ android {
         applicationId = namespace
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.9"
+        versionCode = 11
+        versionName = "1.1.0"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -33,8 +33,8 @@ android {
     }
     buildOutputs {
         all {
-            (this as BaseVariantOutputImpl).outputFileName =
-                "Impad-v${defaultConfig.versionName}-${name}.apk"
+            this as BaseVariantOutputImpl
+            outputFileName = "Impad-v${defaultConfig.versionName}-${name}.apk"
         }
     }
     buildFeatures {
