@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven("https://jitpack.io")
     }
 }
 @Suppress("UnstableApiUsage")
@@ -24,4 +25,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "I'm Pad"
 include(":app")
- 
+include(":zygisk-module")
+include(":finder")
