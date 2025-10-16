@@ -54,9 +54,8 @@ object HookEntrance : IYukiHookXposedInit {
                 packageName.contains("com.tencent.mobileqq") -> processQQ()
                 packageName.contains("com.tencent.mm") -> processWeChat()
                 packageName.contains("com.tencent.wework") -> processWeWork()
-                packageName.contains("com.alibaba.android.rimet") -> processDingTalk()
-                isCustomWeWorkPackage(packageName) -> processCustomWeWork()
-                isCustomWeWorkPackage(appClassLoader) -> processCustomWeWork()
+                isDingTalk() -> processDingTalk()
+                isCustomWeWork() -> processCustomWeWork()
                 packageName.contains("com.xingin.xhs") -> processXhs()
             }
         }
@@ -227,10 +226,12 @@ object HookEntrance : IYukiHookXposedInit {
         }
     }
 
-    private fun isCustomWeWorkPackage(pkg: String) = pkg in customWeWorkPackages
+    private fun PackageParam.isCustomWeWork() =
+        packageName in customWeWorkPackages || appClassLoader?.hasClass("com.tencent.wework.common.utils.WwUtil") == true
 
-    private fun isCustomWeWorkPackage(classLoader: ClassLoader?) =
-        classLoader?.hasClass("com.tencent.wework.common.utils.WwUtil") == true
+    private fun PackageParam.isDingTalk(): Boolean {
+        return packageName == "com.alibaba.android.rimet" || appClassLoader?.hasClass("com.alibaba.android.rimet.LauncherApplication") == true
+    }
 
     private fun PackageParam.afterApplicationAttach(action: (Context) -> Unit) {
         val tinkerApplicationClass =
