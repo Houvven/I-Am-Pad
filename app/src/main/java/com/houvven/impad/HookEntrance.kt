@@ -115,8 +115,11 @@ class HookEntrance : XposedModule() {
                 matcher {
                     modifiers(Modifier.PUBLIC or Modifier.STATIC)
                     paramCount(0)
-                    usingStrings("royole", "tecno", "ro.os_foldable_screen_support")
                     returnType(Boolean::class.javaPrimitiveType!!)
+                    invokeMethods {
+                        add { usingStrings("royole") }
+                        add { usingStrings("ro.os_foldable_screen_support") }
+                    }
                 }
             }.single().toDexMethod()
         }

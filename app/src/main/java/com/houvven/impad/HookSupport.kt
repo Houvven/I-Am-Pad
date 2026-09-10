@@ -83,6 +83,7 @@ internal fun XposedModule.afterApplicationAttach(
             chain.thisObject as? Context
         }
         context?.let(actionWrapper)
+        return@intercept chain.proceed()
     }
 }
 
